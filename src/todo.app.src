@@ -1,0 +1,18 @@
+%% -*- erlang -*-
+{application, todo,
+ [{description, "An Todo-backend implementation using Cowboy, JSX, and ETS."},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, {todo_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    cowboy,
+    jsx
+   ]},
+  {env,[]},
+  {modules, []},
+  {contributors, []},
+  {licenses, []},
+  {links, []}
+ ]}.
