@@ -9,10 +9,12 @@
 %% API exports
 -export([
     create/2,
-    delete/2,
     update/3,
     find/2,
+    find_by/2,
     find_all/1,
+    delete/2,
+    delete_by/2,
     delete_all/1
   ]).
 
@@ -36,14 +38,20 @@ create(Module, F) ->
 update(Module, Id, F) ->
   gen_server:call(Module, {update, Id, F}).
 
-delete(Module, Id) ->
-  gen_server:cast(Module, {delete, Id}).
-
 find(Module, Id) ->
   gen_server:call(Module, {find, Id}).
 
+find_by(Module, Props) ->
+  gen_server:call(Module, {find_by, Props}).
+
 find_all(Module) ->
   gen_server:call(Module, find_all).
+
+delete(Module, Id) ->
+  gen_server:cast(Module, {delete, Id}).
+
+delete_by(Module, Props) ->
+  gen_server:cast(Module, {delete_by, Props}).
 
 delete_all(Module) ->
   gen_server:cast(Module, delete_all).
@@ -86,6 +94,15 @@ handle_call({find, Id}, _, State = #{tid := Tid}) ->
     [{Id, Item}] -> {ok, Item}
   end,
   {reply, Reply, State};
+handle_call({find_by, Props}, _, State = #{tid := Tid}) ->
+  Keys = maps:keys(Props),
+  Reply = ets:foldl(fun({_Id, Todo}, Acc) ->
+    case maps:with(Keys, Todo) of
+      Props -> [Todo | Acc];
+      _ -> Acc
+    end
+  end, [], Tid),
+  {reply, {ok, Reply}, State};
 handle_call(find_all, _, State = #{tid := Tid}) ->
   All = [Item || {_Id, Item} <- ets:tab2list(Tid)],
   {reply, {ok, All}, State};
@@ -105,6 +122,17 @@ handle_call(Message, _, State) ->
 -spec handle_cast(term(), state()) -> handle_cast_result(state()).
 handle_cast({delete, Id}, State = #{tid := Tid}) ->
   ets:delete(Tid, Id),
+  {noreply, State};
+handle_cast({delete_by, Props}, State = #{tid := Tid}) ->
+  Keys = maps:keys(Props),
+  ets:foldl(fun(Object = {_Id, Todo}, Acc = []) ->
+    case maps:with(Keys, Todo) of
+      Props ->
+        ets:delete_object(Tid, Object),
+        Acc;
+      _ -> Acc
+    end
+  end, [], Tid),
   {noreply, State};
 handle_cast(delete_all, State = #{tid := Tid}) ->
   ets:delete_all_objects(Tid),

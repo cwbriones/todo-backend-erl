@@ -15,8 +15,8 @@
 -behaviour(cowboy_handler).
 -export([init/2]).
 
--define(WEB_PORT, 8080).
--define(ACCEPTORS, 100).
+-define(WEB_PORT, application:get_env(?MODULE, web_port, 8080)).
+-define(ACCEPTORS, application:get_env(?MODULE, acceptors, 100)).
 
 %%====================================================================
 %% API
@@ -29,6 +29,7 @@ start_link() ->
   Dispatch = cowboy_router:compile([
     {'_', [
       {"/todos", todo_handler, [all_todos]},
+      {"/todos/completed", todo_handler, [completed_todos]},
       {"/todos/:id", todo_handler, [todos]},
       {'_', ?MODULE, []}
     ]}
